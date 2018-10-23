@@ -46,11 +46,11 @@ class QMParticle(threading.Thread):
 
         self.main_const = self.hbar / (2 * self.m * self.dx**2)
 
-        self.main_diag = 1 - 1j * (self.potential / self.hbar + 2 * self.main_const) * self.dt
+        self.main_diag = -1 * (self.potential / self.hbar + 2 * self.main_const) * self.dt
         self.main_diag[0] = 1
         self.main_diag[-1] = 1
 
-        self.off_diag = np.full(self.N - 1, 1j * self.main_const * self.dt)
+        self.off_diag = np.full(self.N - 1, self.main_const * self.dt)
         self.off_diag[0] = 0
         self.off_diag[-1] = 0
 
@@ -69,8 +69,9 @@ class QMParticle(threading.Thread):
         pass
 
     def step(self):
-        new_Psi = self.Psi[-1] @ self.matrix_transform
-        self.Psi.append(new_Psi)
+        new_Psi_imag = self.Psi[-1].imag + (self.Psi[-1].real @ self.matrix_transform)
+        new_Psi_real = self.Psi[-1].real - (new_Psi_imag @ self.matrix_transform)
+        self.Psi.append(new_Psi_real + 1j * new_Psi_imag)
 
 #test = QMParticle(np.asarray([0, 0, 0]), N=7, potential=np.linspace(2, 8, 7, endpoint=True))
 
