@@ -4,6 +4,7 @@ import cupy as np
 import threading
 import tools
 import numpy
+import pickle as pkl
 
 
 class QMParticle(threading.Thread):
@@ -15,7 +16,10 @@ class QMParticle(threading.Thread):
         self.m = m
         self.L = L
         self.x = x
-        self.Psi = [initial_shape]
+        self.Psi = [np.asnumpy(initial_shape)]
+        self.rho_sq = [np.asnumpy(initial_shape.real**2 + initial_shape.imag**2)]
+
+        self.prev_Psi = initial_shape
 
         if dx is None:
             self.dx = x[1] - x[0]
@@ -69,33 +73,47 @@ class QMParticle(threading.Thread):
         pass
 
     def step(self):
-        new_Psi_imag = self.Psi[-1].imag + (self.Psi[-1].real @ self.matrix_transform)
-        new_Psi_real = self.Psi[-1].real - (new_Psi_imag @ self.matrix_transform)
-        self.Psi.append(new_Psi_real + 1j * new_Psi_imag)
+        new_Psi_imag = self.prev_Psi.imag + (self.prev_Psi.real @ self.matrix_transform)
+        new_Psi_real = self.prev_Psi.real - (new_Psi_imag @ self.matrix_transform)
+        self.Psi.append(np.asnumpy(new_Psi_real + 1j * new_Psi_imag))
+        self.prev_Psi = new_Psi_real + 1j * new_Psi_imag
+        self.rho_sq.append(np.asnumpy(new_Psi_real**2 + new_Psi_imag**2))
 
 #test = QMParticle(np.asarray([0, 0, 0]), N=7, potential=np.linspace(2, 8, 7, endpoint=True))
 
 N = 2000
-space, step_size = np.linspace(0, 20, N, endpoint=True, retstep=True)
-gaussian = tools.create_gaussian(space, 5, 1.5, 20, step_size)
-test = QMParticle(gaussian, space, step_size, N = N)
+L = 20
+k0 = 20
+m = 1
+space, step_size = np.linspace(0, L, N, endpoint=True, retstep=True)
+gaussian = tools.create_gaussian(space, 5, 1.5, k0, step_size)
+pot0 = [0.0] * int(0.48*N)
+pot = np.asarray(pot0 + [QMParticle.hbar**2 * k0**2 / (4 * m)]*(N - 2 * len(pot0)) + pot0)
+test = QMParticle(gaussian, space, step_size, N = N, potential=pot)
 
 #plt.plot(np.asnumpy(space), np.asnumpy(test.Psi[0].real))
 
-times = 100000
+times = 300000
 for i in range(times):
     test.step()
     print(i)
 
-fig, ax = plt.subplots()
-ln, = plt.plot(np.asnumpy(space), np.asnumpy(test.Psi[0].real))
+#pkl.dump(test, open('test.p', 'wb'))
 
-def init():
-    return ln,
+fig, ax = plt.subplots()
+ln1, = plt.plot(np.asnumpy(space), test.Psi[0].real, label="Re")
+ln2, = plt.plot(np.asnumpy(space), test.Psi[0].imag, label="Im")
+ln3, = plt.plot(np.asnumpy(space), test.rho_sq[0], label=r"$\rho^2$")
+plt.plot(np.asnumpy(space), np.asnumpy(pot * np.linalg.norm(test.Psi[0].real, np.inf) / (2 * np.linalg.norm(pot, np.inf))))
+plt.legend()
+
 
 def update(frame):
-    ln.set_ydata(np.asnumpy(test.Psi[frame*times//600].real))
-    return ln,
+    i = frame * times // 600
+    ln1.set_ydata(np.asnumpy(test.Psi[i].real))
+    ln2.set_ydata(np.asnumpy(test.Psi[i].imag))
+    ln3.set_ydata(np.asnumpy(test.rho_sq[i]))
+    return ln1,ln2,ln3
 
 ani = animation.FuncAnimation(fig, update, frames=600, repeat=False, blit=False, interval=1/60)
 
