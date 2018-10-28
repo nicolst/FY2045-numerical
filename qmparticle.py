@@ -32,7 +32,7 @@ class QMParticle(threading.Thread):
 
         # Set name to something resonable if not given
         if name is None:
-            name = "QM particle (m={0}, N={1}, dt={2}, L={3}".format(self.m, self.N, self.dt, self.L)
+            name = "QMpL{0}N{1}m{2}dx{3}dt{4}".format(self.L, self.N, self.m, self.dx, self.dt)
             
         threading.Thread.__init__(self, name=name)
 
