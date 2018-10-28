@@ -2,7 +2,7 @@ import cupy as cp
 import numpy as np
 
 
-def create_gaussian(x, xs, deltaX, k0, step_size):
+def create_gaussian_cp(x, xs, deltaX, k0, step_size):
     temp = cp.asnumpy(x)
     gaussian = np.exp(-(temp-xs)**2 / (2 * deltaX**2)) \
         * np.exp(1j * k0 * temp)
@@ -13,7 +13,8 @@ def create_gaussian(x, xs, deltaX, k0, step_size):
     norm_const = 1 / gauss_int
     return cp.asarray(norm_const * gaussian)
 
-def create_gaussian_np(x, xs, deltaX, k0, step_size):
+
+def create_gaussian(x, xs, deltaX, k0, step_size):
     temp = x
     gaussian = np.exp(-(temp-xs)**2 / (2 * deltaX**2)) \
         * np.exp(1j * k0 * temp)
