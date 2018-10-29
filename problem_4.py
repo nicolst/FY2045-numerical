@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import tools
 import time
 import pickle as pkl
+import threading
 
 t0 = time.time()
 
@@ -52,11 +53,11 @@ def simulate(sigX, barrier_height):
         bar.next()
     bar.finish()
 
-    pkl.dump([Psi_real, Psi_imag, rho_sq], open("problem3_sigX={0}_b={1}.p".format(sigX, barrier_height), "wb"))
+    pkl.dump([Psi_real, Psi_imag, rho_sq], open("problem4_sigX={0}_b={1}.p".format(sigX, barrier_height), "wb"))
 
 
 def display(sigX, barrier_height):
-    values = pkl.load(open("problem3_sigX={0}_b={1}.p".format(sigX, barrier_height), 'rb'))
+    values = pkl.load(open("problem4_sigX={0}_b={1}.p".format(sigX, barrier_height), 'rb'))
 
     fig1, ax1 = plt.subplots(num=1)
     ax1.set_title(r"$\Psi$ after propagation", size=18)
@@ -74,7 +75,7 @@ def display(sigX, barrier_height):
 
 
 def calculate_probabilities(sigX, barrier_height):
-    values = pkl.load(open("problem3_sigX={0}_b={1}.p".format(sigX, barrier_height), 'rb'))
+    values = pkl.load(open("problem4_sigX={0}_b={1}.p".format(sigX, barrier_height), 'rb'))
     rho_sq = values[2][-1]
 
     x_R = space[space <= L/2]
@@ -83,12 +84,53 @@ def calculate_probabilities(sigX, barrier_height):
     x_T = space[space >= L/2]
     T = np.trapz(rho_sq[-len(x_T):], x_T)
 
-    print(R, T)
+    return (R, T)
+
+def plot_it_ev0(barrier_heights):
+    E_over_V0 = 1 / np.linspace(0, 3/2, 50, endpoint=True)[1:]
+    probs = [calculate_probabilities(sigX, b) for b in barrier_heights[1:]]
+    Rs, Ts = zip(*probs)
+
+    plt.xlabel(r"$E/V_0$", size=18)
+    plt.title("Probability of reflection and transmission", size=18)
+    plt.plot(E_over_V0, Rs, label=r"$R$")
+    plt.plot(E_over_V0, Ts, label=r"$T$")
+    plt.legend()
+    plt.tight_layout()
+    plt.grid(True)
+    plt.show()
+
+
+def plot_it_v0e(barrier_heights):
+    V0_over_E = np.linspace(0, 3/2, 50, endpoint=True)
+    probs = [calculate_probabilities(sigX, b) for b in barrier_heights]
+    Rs, Ts = zip(*probs)
+
+    plt.xlabel(r"$V_0/E$", size=18)
+    plt.title("Probability of reflection and transmission", size=18)
+    plt.plot(V0_over_E, Rs, label=r"$R$")
+    plt.plot(V0_over_E, Ts, label=r"$T$")
+    plt.legend()
+    plt.tight_layout()
+    plt.grid(True)
+    plt.show()
+
+
+barrier_heights = np.linspace(0, 3/2, 50, endpoint=True) * k0**2 / 2
+
+#for barrier_height in barrier_heights:
+#    simulate(sigX, barrier_height)
+
+plot_it_v0e(barrier_heights)
+
+
+
+
 
 
 #simulate(sigX, k0**2 / 4)
 #display(sigX, k0**2 / 4)
-calculate_probabilities(sigX, k0**2 / 4)
+#calculate_probabilities(sigX, k0**2 / 4)
 
 t1 = time.time()
 print("Total time: {0} s".format(t1 - t0))
